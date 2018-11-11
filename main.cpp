@@ -3,13 +3,25 @@
 
 #define BUFFER_SIZE 8196
 #define ZERO 48
+#define MAX_DEPTH 100
 
 using namespace std;
 
-// Subtract 1 from number
-list<int> subOne(list<int> num)
+typedef list<int> number;
+
+// Used for already calculated fibonacci numbers
+struct M
 {
-    list<int> result;
+    number t;
+    number f;
+};
+
+static list<M> fNum[MAX_DEPTH];
+
+// Subtract 1 from number
+number subOne(number num)
+{
+    number result;
 
     int borrow = 1;
     int n;
@@ -39,9 +51,9 @@ list<int> subOne(list<int> num)
 
 // Add two big integers
 // Can be modified to add two floating point numbers
-list<int> add(list<int> first, list<int> second)
+number add(number first, number second)
 {
-    list<int> summation;
+    number summation;
 
     int addon = 0;
     int result, s, f;
@@ -85,9 +97,9 @@ list<int> add(list<int> first, list<int> second)
 }
 
 // Divide number by two
-list<int> divByTwo(list<int> div)
+number divByTwo(number div)
 {
-    list<int> result;
+    number result;
 
     if(div.size() == 1 && div.back() == 1)
         return result;
@@ -113,9 +125,9 @@ list<int> divByTwo(list<int> div)
 }
 
 // Multiplies two big numbers
-list<int> multiply(list<int> first, list<int> second)
+number multiply(number first, number second)
 {
-    list<int> result;
+    number result;
 
     int slide = 0;
     int s;
@@ -143,7 +155,7 @@ list<int> multiply(list<int> first, list<int> second)
         // We add the numbers of multiplication with each digit with
         // one slide to the left, so we find which digit we start adding
         // the result
-        list<int>::reverse_iterator iter = result.rbegin();
+        number::reverse_iterator iter = result.rbegin();
         for( ; iter != result.rend(); ++iter)
         {
             if(s == slide)
@@ -151,7 +163,7 @@ list<int> multiply(list<int> first, list<int> second)
             s++;
         }
 
-        for(list<int>::reverse_iterator fIter = first.rbegin(); fIter != first.rend(); ++fIter)
+        for(number::reverse_iterator fIter = first.rbegin(); fIter != first.rend(); ++fIter)
         {
             int r;
             if(iter == result.rend())
@@ -179,23 +191,23 @@ list<int> multiply(list<int> first, list<int> second)
 }
 
 // Sequential fibonacci algorithm
-list<int> fibSequential(list<int> turn)
+number fibSequential(number turn)
 {
-    list<int> a;
+    number a;
     a.push_back(1);
 
     turn = subOne(turn);
     if(turn.empty())
         return a;
 
-    list<int> b;
+    number b;
     b.push_back(1);
 
     turn = subOne(turn);
     if(turn.empty())
         return b;
 
-    list<int> result;
+    number result;
 
     while(!turn.empty())
     {
@@ -209,11 +221,12 @@ list<int> fibSequential(list<int> turn)
 }
 
 // https://www.geeksforgeeks.org/program-for-nth-fibonacci-number/
-// logn algorithm for fibonacci
+// However, not logn but n algorithm for fibonacci
+// Since same numbers are calculated again
 // inspired from the last algorithm given in the geeksforgeeks link
-list<int> fib(list<int> turn)
+number fib(number turn)
 {
-    list<int> result;
+    number result;
     if(turn.size() == 0)
     {
         result.push_back(0);
@@ -227,21 +240,133 @@ list<int> fib(list<int> turn)
     }
     if(turn.back() & 1) // If turn is odd
     {
-        list<int> one(1,1);
-        list<int> k = divByTwo(add(turn, one));
+        number one(1,1);
+        number k = divByTwo(add(turn, one));
 
-        list<int> fk = fib(k);             // fibonacci number of kth number
-        list<int> fkmo = fib(subOne(k));   // fibonacci number of (k-1)th number
+        number fk = fib(k);             // fibonacci number of kth number
+        number fkmo = fib(subOne(k));   // fibonacci number of (k-1)th number
 
         result = add(multiply(fk,fk), multiply(fkmo, fkmo));
     }
     else                // If turn is even
     {
-        list<int> k = divByTwo(turn);
-        list<int> two(1,2);
+        number k = divByTwo(turn);
+        number two(1,2);
 
-        list<int> fk = fib(k);              // fibonacci number of kth number
-        list<int> fkmo = fib(subOne(k));    // fibonacci number of (k-1)th number
+        number fk = fib(k);              // fibonacci number of kth number
+        number fkmo = fib(subOne(k));    // fibonacci number of (k-1)th number
+
+        result = multiply(fk, add(fk, multiply(fkmo, two)));
+    }
+
+    return result;
+}
+
+// Already calculated numbers are tried to be obtained
+// Not as efficient as if(f[n]) return f[n]; part
+// of the geeksforgeeks algorithm but about %25 speeds up
+// the calculation nonetheless
+number getTurn(number turn, int depth)
+{
+    number result;
+    bool breaked;
+
+    for(list<M>::iterator iter = fNum[depth].begin(); iter != fNum[depth].end(); ++iter)
+    {
+        breaked = false;
+        number::iterator n = (*iter).t.begin();
+        number::iterator tIter = turn.begin();
+
+        while(true)
+        {
+            if(n == (*iter).t.end() || tIter == turn.end())
+                break;
+            if(*n != *tIter)
+            {
+                breaked = true;
+                break;
+            }
+            ++n;
+            ++tIter;
+        }
+        if(breaked)
+            continue;
+        else
+        {
+            result = (*iter).f;
+            return result;
+        }
+    }
+    return result;
+}
+
+// https://www.geeksforgeeks.org/program-for-nth-fibonacci-number/
+// logn algorithm for fibonacci
+// tried to omit calculation of same numbers
+// inspired from the last algorithm given in the geeksforgeeks link
+number fib(number turn, int depth)
+{
+    M m;
+    number result;
+    if(turn.size() == 0)
+    {
+        result.push_back(0);
+        return result;
+    }
+    if(turn.size() == 1
+            && (turn.back() == 1 || turn.back() == 2))
+    {
+        result.push_back(1);
+        return result;
+    }
+
+    if(depth > 0)
+    {
+        number calculated = getTurn(turn, depth - 1);
+        if(calculated.size() != 0)
+        {
+            result = calculated;
+            return result;
+        }
+    }
+
+    if(turn.back() & 1) // If turn is odd
+    {
+        number one(1,1);
+        number k = divByTwo(add(turn, one));
+
+        number fk = fib(k, depth + 1);             // fibonacci number of kth number
+
+        m.t = k;
+        m.f = fk;
+        fNum[depth].push_back(m);
+
+        number kmo = subOne(k);
+        number fkmo = fib(kmo, depth + 1);   // fibonacci number of (k-1)th number
+
+        m.t = kmo;
+        m.f = fkmo;
+        fNum[depth].push_back(m);
+
+        result = add(multiply(fk,fk), multiply(fkmo, fkmo));
+    }
+    else                // If turn is even
+    {
+        number k = divByTwo(turn);
+        number two(1,2);
+
+        number fk = fib(k, depth + 1);              // fibonacci number of kth number
+
+        m.t = k;
+        m.f = fk;
+        fNum[depth].push_back(m);
+
+        number kmo = subOne(k);
+        number fkmo = fib(kmo, depth + 1);    // fibonacci number of (k-1)th number
+
+        m.t = kmo;
+        m.f = fkmo;
+        fNum[depth].push_back(m);
 
         result = multiply(fk, add(fk, multiply(fkmo, two)));
     }
@@ -251,7 +376,6 @@ list<int> fib(list<int> turn)
 
 int main()
 {
-
     char temp[BUFFER_SIZE];
 
     cout << "Enter Number : " << endl;
@@ -261,13 +385,20 @@ int main()
     unsigned int chars_read = cin.gcount();
 
     string s(temp, chars_read - 1);
-    list<int> turn;
+    number turn;
     for(size_t i = 0; i < s.length(); ++i)
         turn.push_back(s[i] - ZERO);
 
-    list<int> result = fib(turn);
-    for (std::list<int>::iterator it = result.begin(); it != result.end(); ++it)
-        std::cout << *it;
+    number result;
+
+//    result = fib(turn);
+//    for (number::iterator it = result.begin(); it != result.end(); ++it)
+//        cout << *it;
+//    cout << endl;
+
+    result = fib(turn, 0);
+    for (number::iterator it = result.begin(); it != result.end(); ++it)
+        cout << *it;
     cout << endl << "End of Program" << endl;
     return 0;
 }
