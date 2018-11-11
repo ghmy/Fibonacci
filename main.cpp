@@ -279,9 +279,11 @@ number getTurn(number turn, int depth)
 
         while(true)
         {
-            if(n == (*iter).t.end() || tIter == turn.end())
+            if(n == (*iter).t.end() && tIter == turn.end())
                 break;
-            if(*n != *tIter)
+            if(n == (*iter).t.end()
+                    || tIter == turn.end()
+                    || *n != *tIter)
             {
                 breaked = true;
                 break;
