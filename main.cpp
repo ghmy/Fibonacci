@@ -322,14 +322,11 @@ number fib(number turn, int depth)
         return result;
     }
 
-    if(depth > 0)
+    number calculated = getTurn(turn, depth);
+    if(calculated.size() != 0)
     {
-        number calculated = getTurn(turn, depth - 1);
-        if(calculated.size() != 0)
-        {
-            result = calculated;
-            return result;
-        }
+        result = calculated;
+        return result;
     }
 
     if(turn.back() & 1) // If turn is odd
@@ -341,16 +338,20 @@ number fib(number turn, int depth)
 
         m.t = k;
         m.f = fk;
-        fNum[depth].push_back(m);
+        fNum[depth + 1].push_back(m);
 
         number kmo = subOne(k);
         number fkmo = fib(kmo, depth + 1);   // fibonacci number of (k-1)th number
 
         m.t = kmo;
         m.f = fkmo;
-        fNum[depth].push_back(m);
+        fNum[depth + 1].push_back(m);
 
         result = add(multiply(fk,fk), multiply(fkmo, fkmo));
+
+        m.t = turn;
+        m.f = result;
+        fNum[depth].push_back(m);
     }
     else                // If turn is even
     {
@@ -361,16 +362,20 @@ number fib(number turn, int depth)
 
         m.t = k;
         m.f = fk;
-        fNum[depth].push_back(m);
+        fNum[depth + 1].push_back(m);
 
         number kmo = subOne(k);
         number fkmo = fib(kmo, depth + 1);    // fibonacci number of (k-1)th number
 
         m.t = kmo;
         m.f = fkmo;
-        fNum[depth].push_back(m);
+        fNum[depth + 1].push_back(m);
 
         result = multiply(fk, add(fk, multiply(fkmo, two)));
+
+        m.t = turn;
+        m.f = result;
+        fNum[depth].push_back(m);
     }
 
     return result;
